@@ -53,7 +53,7 @@ contract DSCEngine is ReentrancyGuard {
     ///////////////////
     //// Errors      ///
     ///////////////////
-    error DSCEngine__NeedsMoreThanZero(uint256 _amount);
+    error DSCEngine__NeedsMoreThanZero();
     error DSCEngine__TokenAndPriceFeedMustBeSameLength();
     error DSCEngine__NotAllowedToken();
     error DSCEngine__TransferFailed();
@@ -82,7 +82,7 @@ contract DSCEngine is ReentrancyGuard {
 
     modifier MoreThanZero(uint256 _amount) {
         if (_amount == 0) {
-            revert DSCEngine__NeedsMoreThanZero(_amount);
+            revert DSCEngine__NeedsMoreThanZero();
         }
         _;
     }
@@ -117,12 +117,16 @@ contract DSCEngine is ReentrancyGuard {
 
     function depositCollateralAndMintDsc() external {}
 
+    function addTwo(uint256 a) public pure MoreThanZero(a) returns (uint256) {
+        return a + 2;
+    }
     /**
      * @notice Just deposit collateral and don't have an ability to mint DSC
      * @notice follows CEI (Check Effect Interaction)
      * @param _tokenCollateralAddress The address of the collateral token
      * @param _amountCollateral The amount of collateral
      */
+
     function depositCollateral(address _tokenCollateralAddress, uint256 _amountCollateral)
         external
         MoreThanZero(_amountCollateral)

@@ -22,9 +22,9 @@ contract HelperConfig is Script {
     NetworkConfig public activeNetworkConfig;
 
     constructor() {
-        if(block.chainid == 11155111) {
+        if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
-        }else{
+        } else {
             activeNetworkConfig = getOrCreateAnvilConfig();
         }
     }
@@ -35,7 +35,7 @@ contract HelperConfig is Script {
             wbtcUsdPriceFeed: 0x1b44F3514812d835EB1BDB0acB33d3fA3351Ee43,
             weth: 0xdd13E55209Fd76AfE204dBda4007C227904f0a81,
             wbtc: 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063,
-            deployerKey: vm.envUint("PRIVATE_KEY")
+            deployerKey: vm.envUint("PRIVATE_KEY_SEPOLIA")
         });
     }
 
@@ -47,8 +47,8 @@ contract HelperConfig is Script {
         vm.startBroadcast();
         MockV3Aggregator wethPriceFeed = new MockV3Aggregator(DECIMALS, ETH_USD_PRICE);
         MockV3Aggregator wbtcPriceFeed = new MockV3Aggregator(DECIMALS, BTC_USD_PRICE);
-        ERC20Mock wethMock = new ERC20Mock("Wrapped Ether", "WETH", msg.sender, 1000e8);
-        ERC20Mock wbtcMock = new ERC20Mock("Wrapped Bitcoin", "WBTC", msg.sender, 1000e8);
+        ERC20Mock wethMock = new ERC20Mock("Wrapped Ether", "WETH", msg.sender, 120e6);
+        ERC20Mock wbtcMock = new ERC20Mock("Wrapped Bitcoin", "WBTC", msg.sender, 20e6);
         vm.stopBroadcast();
 
         return NetworkConfig({
@@ -56,7 +56,7 @@ contract HelperConfig is Script {
             wbtcUsdPriceFeed: address(wbtcPriceFeed),
             weth: address(wethMock),
             wbtc: address(wbtcMock),
-            deployerKey: DEFAULT_ANVIL_KEY 
+            deployerKey: DEFAULT_ANVIL_KEY
         });
     }
 }
