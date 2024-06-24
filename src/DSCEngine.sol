@@ -161,14 +161,14 @@ contract DSCEngine is ReentrancyGuard {
      * @notice this function will redeem DSC and burn collateral in the one transaction
      * @param _tokenCollateralAddress address of the collateral token to redeem
      * @param _amountCollateral amount of collateral to redeem
-     * @param _amountDscTobBurn amount dsc to burn
+     * @param _amountDscToBurn amount dsc to burn
      */
     function redeemCollateralForDsc(
         address _tokenCollateralAddress,
         uint256 _amountCollateral,
-        uint256 _amountDscTobBurn
+        uint256 _amountDscToBurn
     ) external {
-        burnDsc(_amountDscTobBurn);
+        burnDsc(_amountDscToBurn);
         redeemCollateral(_tokenCollateralAddress, _amountCollateral);
     }
 
