@@ -75,12 +75,20 @@ contract DSCEngine is ReentrancyGuard {
     uint256 private constant LIQUIDATION_PRECISION = 100;
     uint256 private constant MIN_HEALTH_FACTOR = 1e18;
 
-    mapping(address token => address priceFeed) private s_priceFeeds; // token to price feed
-    mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited; // user => token addresses to amount of deposit
-    mapping(address user => uint256 amountDscMinted) private s_DscMinted; // user => total amount of dsc minted
+    // collateral address with the price feed itself, for example token collateral address => price feed chainlink 
+    mapping(address tokenCollateral => address priceFeedChainlink) private s_priceFeeds; 
 
-    address[] private s_collateralTokens; // array of address collateral
-    DecentralizedStableCoin private immutable i_dsc; // ERC20 standard DSC
+    // user who has collateral will be stored as a token , for example 10e18 token in wei
+    mapping(address user => mapping(address tokenCollateral => uint256 amountOfToken)) private s_collateralDeposited; 
+  
+    // user who has minted will be stored as a token , for example 10e18 dsc in wei
+    mapping(address user => uint256 amountDscMinted) private s_DscMinted; 
+
+    // array of address collateral
+    address[] private s_collateralTokens; 
+
+    // ERC20 standard for DSC
+    DecentralizedStableCoin private immutable i_dsc; 
 
     ///////////////////
     //// Modifiers ////
@@ -137,6 +145,8 @@ contract DSCEngine is ReentrancyGuard {
     }
 
     /**
+     * @notice this function receive the amount of collateral through token and token collateral address itself
+     * for example if the token is ETH and the collateral is WETH and it will be deposited / saved as WETH
      * @notice Just deposit collateral and don't have an ability to mint DSC
      * @notice follows CEI (Check Effect Interaction)
      * @param _tokenCollateralAddress The address of the collateral token
@@ -235,8 +245,6 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(_user);
     }
 
-    function getHealthFactor() external {}
-
     /////////////////////////////
     //// Internal Functions  ////
     /////////////////////////////
@@ -275,18 +283,15 @@ contract DSCEngine is ReentrancyGuard {
      * if a user goes bellow 1, then can get liquidated
      */
     function _healthFactor(address _user) private view returns (uint256) {
-        // 100 DSC / 150 ETH
-        (uint256 _totalDscMinted, uint256 _totalCollateralValue) = _getAccountInformation(_user);
+        //          1e18                   7000e18 usd in wei
+        (uint256 _totalDscMinted, uint256 _totalCollateralValueInUsd) = _getAccountInformation(_user);
 
-        // 150 DSC * 50 / 100 = 75
-        uint256 collateralAdjusted = (_totalCollateralValue * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
-        // $150 ETH / $100 DSC = 1.5
-        // 150 * 50 = 7500 / 100 = (75/100) < 1
-
-        // 1000 ETH / 100 DSC
-        // 1000 * 50 = 50000 / 100 = (500/100) > 1
+        //                              7000e18                 *   50                  / 100   -> 3500e18
+        uint256 collateralAdjusted = (_totalCollateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+      
+      //        3500e18 * 1e18  / 1e18 -> 3500e18
         return (collateralAdjusted * PRECISION) / _totalDscMinted;
-        // 75 * 1e18 / 100 < 1e18
+      // MIN_HEALTH_FACTOR = 1e18 --> perbandingan yang sama
     }
 
     function _revertIfHealthFactorIsBroken(address _user) internal view {
@@ -300,6 +305,10 @@ contract DSCEngine is ReentrancyGuard {
     //// Public  Functions  ////
     /////////////////////////////
 
+    /**
+     * @notice this function receive address of token collateral and usd in wei 1e18
+     * additionally, this function will return amount of token in wei
+     */
     function getTokenAmountFromUsd(address _tokenCollateralAddress, uint256 _usdAmountInWei)
         public
         view
@@ -308,25 +317,43 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[_tokenCollateralAddress]);
         (, int256 price,,,) = priceFeed.latestRoundData();
 
+            // (    7000e18     *   1e18  )  / (    3500e8     *        1e10        ) -> 2e18 of token in wei 
         return (_usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
+    /**
+     * @notice this function receive address of token collateral and token amount in wei
+     * additionally, this function will return usd in wei 
+     */
+    function getValueInUSD(address _tokenCollateral, uint256 _tokenAmountInWei) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[_tokenCollateral]);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+
+        // price             -> 3500 usd / eth
+        // _tokenAmountInWei -> amount of token in wei
+
+        //     (3500e8         *        1e10                *           2e18    /   1e18    -> 7000e18 usd (in wei)
+        return (uint256(price) * ADDITIONAL_FEED_PRECISION) * _tokenAmountInWei / PRECISION ;
+    }
+
+    /**
+     * @notice this function will calculate the total of collateral in usd
+     */
     function getAccountCollateralValueInUsd(address _user) public view returns (uint256 totalCollateralValueInUsd) {
         for (uint256 i = 0; i < s_collateralTokens.length; i++) {
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[_user][token];
             totalCollateralValueInUsd += getValueInUSD(token, amount);
         }
+
+        return totalCollateralValueInUsd;
     }
 
-    function getValueInUSD(address _token, uint256 _amount) public view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[_token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+    function getAccountInformation(address _user) public view returns (uint256 _totalDscMinted, uint256 _totalCollateralValueInUsd) {
+        (_totalDscMinted, _totalCollateralValueInUsd) = _getAccountInformation(_user);
+    }
 
-        // $ 1 ETH = $ 1000
-        // the returned from CL will be 1000 * 1e8
-
-        return (uint256(price) * ADDITIONAL_FEED_PRECISION) * _amount / PRECISION;
-        // ((1000 * 1e8 * 1e10 ) * amount) / 1e18 -> $USD / ETH
+    function getHealthFactor(address _user) public view returns (uint256){
+        return _healthFactor(_user);
     }
 }
