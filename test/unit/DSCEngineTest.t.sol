@@ -165,8 +165,10 @@ contract DSCEngineTest is Script, Test {
      */
     modifier depositedCollateralAndMintedDsc() {
         vm.startPrank(USER);
-        ERC20Mock(weth).approve(address(dscengine), AMOUNT_COLLATERAL_ETH); // -> 10 ETH for borrowing collateral
-        dscengine.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL_ETH, AMOUNT_TO_MINT_DSC); // -> 10 ETH for collateral deposited and 1000 for minting DSC
+        // -> 10 ETH for borrowing collateral
+        ERC20Mock(weth).approve(address(dscengine), AMOUNT_COLLATERAL_ETH); 
+        // -> 10 ETH for collateral deposited and 1000 for minting DSC
+        dscengine.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL_ETH, AMOUNT_TO_MINT_DSC); 
         vm.stopPrank();
         _;
     }
@@ -188,4 +190,79 @@ contract DSCEngineTest is Script, Test {
         dscengine.depositCollateralAndMintDsc(weth, AMOUNT_COLLATERAL_ETH, AMOUNT_TO_MINT_REVERT_DSC); // -> 10 ETH for collateral deposited and 1000 for minting DSC
         vm.stopPrank();
     }
+
+    //////////////////////
+    ///// Burn DSC ///////
+    //////////////////////
+
+    function testBurnRevertMoreThanZero() depositedCollateralAndMintedDsc public {
+        uint256 dscToBurn = 100;
+
+        vm.startPrank(USER);
+        dsc.approve(address(dscengine), dscToBurn);
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__NeedsMoreThanZero.selector));
+        dscengine.burnDsc(0);
+        vm.stopPrank();
+    }
+
+    function testBurnRevertWhenHaveNotDsc() depositedCollateral public {
+        vm.startPrank(USER);
+        vm.expectRevert();
+        dscengine.burnDsc(1);
+        vm.stopPrank();
+    }
+
+    function testCanBurnDsc() public depositedCollateralAndMintedDsc {
+        uint256 dscToBurn = 100;
+        
+        vm.startPrank(USER);
+        dsc.approve(address(dscengine), dscToBurn);
+        dscengine.burnDsc(dscToBurn);
+        vm.stopPrank();
+
+        uint256 expectedDsc = AMOUNT_TO_MINT_DSC - dscToBurn;
+        uint256 actualDsc = dsc.balanceOf(USER);
+
+        assertEq(expectedDsc, actualDsc);
+    }
+
+    ////////////////////////////////////
+    ///// Redeem Collateral test ///////
+    ////////////////////////////////////
+
+    function testCanRedeemCollateral() public depositedCollateralAndMintedDsc {
+        vm.startPrank(USER);
+        vm.expectRevert();
+        dscengine.redeemCollateral(weth, 0);
+        vm.stopPrank();
+
+        (, uint256 startBalance) = dscengine.getAccountInformation(USER);
+
+        vm.startPrank(USER);
+        dscengine.redeemCollateral(weth, 1);
+        vm.stopPrank();
+
+        (, uint256 lastBalance) = dscengine.getAccountInformation(USER);
+
+        assertEq(startBalance - 3500, lastBalance);
+    }
+
+    function testCanRedeemCollateralAndBurnDsc() public depositedCollateralAndMintedDsc {
+        vm.startPrank(USER);
+        vm.expectRevert();
+        dscengine.redeemCollateralForDsc(weth, 1, 0);
+        vm.stopPrank();
+
+        (, uint256 startBalance) = dscengine.getAccountInformation(USER);
+
+        vm.startPrank(USER);
+        dsc.approve(address(dscengine), 100);
+        dscengine.redeemCollateralForDsc(weth, 1, 100);
+        vm.stopPrank();
+
+        (, uint256 lastBalance) = dscengine.getAccountInformation(USER);
+
+        assertEq(startBalance - 3500, lastBalance);
+    }
+
 }
