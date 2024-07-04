@@ -22,7 +22,7 @@ contract DSCEngineTest is Script, Test {
 
     address public USER = makeAddr("USER");
     uint256 public constant AMOUNT_COLLATERAL_ETH = 10 ; // means 10 ETH 
-    uint256 public constant AMOUNT_TO_MINT_DSC = 10_000 ; // means 1000 DSC
+    uint256 public constant AMOUNT_TO_MINT_DSC = 10_000 ; // means 10000 DSC
     uint256 public constant AMOUNT_TO_MINT_REVERT_DSC = 40_000; // from 10 ETH * 3500 USD/ETH
     uint256 public constant STARTING_ERC20_BALANCES_WETH = 1000 ; // for minting weth in setUp (total supply)
 
@@ -161,7 +161,7 @@ contract DSCEngineTest is Script, Test {
     /**
      * this modifier act for depositing and then keep overcollatoralized to avoid revert 
      * we know that the revert is appear when the collateral under 200% from dsc
-     * we have 10 eth -> 3
+     * we have 10 eth -> 35_000 USD
      */
     modifier depositedCollateralAndMintedDsc() {
         vm.startPrank(USER);
