@@ -257,7 +257,7 @@ contract DSCEngineTest is Script, Test {
 
         vm.startPrank(USER);
         dsc.approve(address(dscengine), 100);
-        dscengine.redeemCollateralForDsc(weth, 1, 100);
+        dscengine.redeemCollateralForDsc(weth, 1, 100); // we use 1 eth, equal to 3500 USD 
         vm.stopPrank();
 
         (, uint256 lastBalance) = dscengine.getAccountInformation(USER);
@@ -265,4 +265,52 @@ contract DSCEngineTest is Script, Test {
         assertEq(startBalance - 3500, lastBalance);
     }
 
+    function testCek() public depositedCollateralAndMintedDsc {
+        (uint256 dscMinted, uint256 actualUsd) = dscengine.getAccountInformation(USER);
+        console.log(dscMinted, actualUsd);
+    }
+
+    ////////////////////////////////
+    ///// liquidation test  ////////
+    ////////////////////////////////
+
+    function testLiquidationRevertNeedMoreThanZero() public depositedCollateralAndMintedDsc {
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__NeedsMoreThanZero.selector));
+        dscengine.liquidate(weth, USER, 0);
+    }
+
+    function testLiquidationRevertIfHealthFactorOk() public depositedCollateralAndMintedDsc {
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__HealthFactorOk.selector));
+        dscengine.liquidate(weth, USER, 1);
+    }
+
+    function testLiquidateSucsess() public depositedCollateralAndMintedDsc {
+        vm.startPrank(USER);
+        // dscengine.redeemCollateral(weth, 5);
+        dscengine.liquidate(weth, USER, 5);
+        vm.stopPrank();
+
+        (uint256 dscMinted, uint256 actualUsd) = dscengine.getAccountInformation(USER);
+        console.log(dscMinted, actualUsd);
+    }
+
+    ////////////////////////////////////
+    ///// public function test   ///////
+    ////////////////////////////////////
+
+    function testgetAccountCollateralValueInUsd() public depositedCollateralAndMintedDsc {
+        uint256 actualCollateral = dscengine.getAccountCollateralValueInUsd(USER);
+        uint256 expectedCollateral = AMOUNT_COLLATERAL_ETH * 3500;
+
+        assertEq(actualCollateral, expectedCollateral);
+    }
+
+    function testGetHealthFactor() public depositedCollateralAndMintedDsc {
+        uint256 actualHealthFactor = dscengine.getHealthFactor(USER);
+        uint256 expectedHealthFactor = (AMOUNT_COLLATERAL_ETH * 3500 * 1e18) / (AMOUNT_TO_MINT_DSC * 2) ;
+
+        assertEq(actualHealthFactor, expectedHealthFactor);
+    }
+
+    
 }
