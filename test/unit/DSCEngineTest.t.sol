@@ -10,6 +10,7 @@ import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 import {Script} from "forge-std/Script.sol";
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
 import {console} from "forge-std/console.sol";
+import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
 
 contract DSCEngineTest is Script, Test {
     DSCEngine dscengine;
@@ -265,11 +266,6 @@ contract DSCEngineTest is Script, Test {
         assertEq(startBalance - 3500, lastBalance);
     }
 
-    function testCek() public depositedCollateralAndMintedDsc {
-        (uint256 dscMinted, uint256 actualUsd) = dscengine.getAccountInformation(USER);
-        console.log(dscMinted, actualUsd);
-    }
-
     ////////////////////////////////
     ///// liquidation test  ////////
     ////////////////////////////////
@@ -280,18 +276,25 @@ contract DSCEngineTest is Script, Test {
     }
 
     function testLiquidationRevertIfHealthFactorOk() public depositedCollateralAndMintedDsc {
+        MockV3Aggregator(wethUsdPriceFeed).updateAnswer(2000e8);
         vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__HealthFactorOk.selector));
         dscengine.liquidate(weth, USER, 1);
     }
 
     function testLiquidateSucsess() public depositedCollateralAndMintedDsc {
+        uint256 usdForLiquidation = 5000;
+        (uint256 dscMintedearly, ) = dscengine.getAccountInformation(USER);
+
         vm.startPrank(USER);
-        // dscengine.redeemCollateral(weth, 5);
-        dscengine.liquidate(weth, USER, 5);
+        MockV3Aggregator(wethUsdPriceFeed).updateAnswer(1500e8);
+        dsc.approve(address(dscengine), usdForLiquidation);
+        dscengine.liquidate(weth, USER, usdForLiquidation);
         vm.stopPrank();
 
-        (uint256 dscMinted, uint256 actualUsd) = dscengine.getAccountInformation(USER);
-        console.log(dscMinted, actualUsd);
+        (uint256 dscMintedeAkhir, uint256 actualUsdAkhir) = dscengine.getAccountInformation(USER);
+        
+        assertEq(dscMintedearly - usdForLiquidation, dscMintedeAkhir);
+        assertEq(actualUsdAkhir, (15000 - 5000) + (5000/10));
     }
 
     ////////////////////////////////////
