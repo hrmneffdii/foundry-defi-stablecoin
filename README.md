@@ -64,3 +64,20 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+Note :
+
+Fuzz testing is supply random data to your system in attemp to break it
+invariant is property of our system that should  always hold
+
+statefull is the way to test contract when the contract from start to finish is same through some testing
+
+stateless is the way to test contract when every testing with new contract
+
+if we want to create statefull fuzzing, it can need more effort to create setup
+
+in foundry  -> fuzz test is random data to one function
+            -> invariant test is random data to random function call
+
+foundry fuzzing -> stateless fuzzing
+foundry invariant -> statefull fuzzing

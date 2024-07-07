@@ -286,6 +286,8 @@ contract DSCEngine is ReentrancyGuard {
         //          1e18                   7000e18 usd in wei
         (uint256 _totalDscMinted, uint256 _totalCollateralValueInUsd) = _getAccountInformation(_user);
 
+        if(_totalDscMinted == 0) return type(uint256).max;
+
         //                              7000e18                 *   50                  / 100   -> 3500e18
         uint256 collateralAdjusted = (_totalCollateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
       
@@ -293,6 +295,7 @@ contract DSCEngine is ReentrancyGuard {
         return (collateralAdjusted * PRECISION) / _totalDscMinted;
       // MIN_HEALTH_FACTOR = 1e18 --> perbandingan yang sama
     }
+
 
     function _revertIfHealthFactorIsBroken(address _user) internal view {
         uint256 healthFactor = _healthFactor(_user);
@@ -355,5 +358,17 @@ contract DSCEngine is ReentrancyGuard {
 
     function getHealthFactor(address _user) public view returns (uint256){
         return _healthFactor(_user);
+    }
+
+    function getCollateralBalanceOfUser(address _user, address _token) public view returns(uint256) {
+        return s_collateralDeposited[_user][_token];
+    }
+
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+        return s_priceFeeds[token];
+    }
+
+    function getDsc() external view returns (address) {
+        return address(i_dsc);
     }
 }

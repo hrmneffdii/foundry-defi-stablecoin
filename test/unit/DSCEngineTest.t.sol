@@ -92,7 +92,6 @@ contract DSCEngineTest is Script, Test {
         vm.stopPrank();
     }
 
-    function testRevertIfTransferFailed() public {}
 
     /**
      * @notice here, we initialize the deposit token with 10 token of eth, and approve it.
@@ -315,5 +314,20 @@ contract DSCEngineTest is Script, Test {
         assertEq(actualHealthFactor, expectedHealthFactor);
     }
 
+    function testGetHealthFactorWhenDscMintedZero() public depositedCollateral {
+        uint256 actualHealthFactor = dscengine.getHealthFactor(USER);
+        uint256 expectedHealthFactor = type(uint256).max;
+
+        assertEq(actualHealthFactor, expectedHealthFactor);        
+    }
+
+    function testGetAccountCollateralValueInUsd() public depositedCollateral {
+        MockV3Aggregator(wethUsdPriceFeed).updateAnswer(1000e8);
+
+        uint256 actualUsd = dscengine.getAccountCollateralValueInUsd(USER);
+        uint256 expectedUsd = AMOUNT_COLLATERAL_ETH * 1000;
+
+        assertEq(actualUsd, expectedUsd);
+    }
     
 }
