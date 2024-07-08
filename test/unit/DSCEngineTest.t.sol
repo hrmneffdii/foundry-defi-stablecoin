@@ -11,6 +11,8 @@ import {Script} from "forge-std/Script.sol";
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
 import {console} from "forge-std/console.sol";
 import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
+import {MockFailedTransferFrom} from "../mocks/MockFailedTransferFrom.sol";
+import {MockFailedMint} from "../mocks/MockFailedMint.sol";
 
 contract DSCEngineTest is Script, Test {
     DSCEngine dscengine;
@@ -92,6 +94,27 @@ contract DSCEngineTest is Script, Test {
         vm.stopPrank();
     }
 
+    function testDepositTransferFailed() public {
+        address owner = msg.sender;
+
+        vm.startPrank(owner);
+        MockFailedTransferFrom mockDsc = new MockFailedTransferFrom();
+
+        tokenAddresess = [address(mockDsc)];
+        priceFeedAddresses = [wethUsdPriceFeed];
+
+        DSCEngine mockDsce = new DSCEngine(tokenAddresess, priceFeedAddresses, address(mockDsc));
+        mockDsc.mint(USER, AMOUNT_COLLATERAL_ETH);
+        mockDsc.transferOwnership(address(mockDsce));
+        vm.stopPrank();
+
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(mockDsce), AMOUNT_COLLATERAL_ETH);
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__TransferFailed.selector));
+        mockDsce.depositCollateral(address(mockDsc), AMOUNT_COLLATERAL_ETH);
+        vm.stopPrank();
+    }
+
 
     /**
      * @notice here, we initialize the deposit token with 10 token of eth, and approve it.
@@ -126,6 +149,29 @@ contract DSCEngineTest is Script, Test {
     ///////////////////////////////////
     ///// Minting Tests ///////////////
     ///////////////////////////////////
+
+    function testMintFailed() public {
+        address owner = msg.sender;
+        
+        vm.startPrank(owner);
+        MockFailedMint mockDsc = new MockFailedMint();
+        tokenAddresess = [weth];
+        priceFeedAddresses = [wethUsdPriceFeed];
+
+        DSCEngine mockDsce = new DSCEngine(tokenAddresess, priceFeedAddresses, address(mockDsc));
+        mockDsc.transferOwnership(address(mockDsce));
+
+        ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCES_WETH);
+        vm.stopPrank();
+
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(mockDsce), AMOUNT_COLLATERAL_ETH);
+        mockDsce.depositCollateral(weth, AMOUNT_COLLATERAL_ETH);
+        vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__MintFailed.selector));
+        mockDsce.mintDsc(AMOUNT_TO_MINT_DSC);
+        vm.stopPrank();
+    }
+
 
      /**
      * @notice we expect that the process won't revert because the rule minting accepted
