@@ -371,4 +371,9 @@ contract DSCEngine is ReentrancyGuard {
     function getDsc() external view returns (address) {
         return address(i_dsc);
     }
+
+    function getCollateralTokens() external view returns(address[] memory){
+        return s_collateralTokens;
+    }
+
 }
