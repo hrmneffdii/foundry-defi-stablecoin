@@ -88,7 +88,7 @@ Ready to get started? Follow these steps to set up your development environment:
 
 2. **Clone this repository**:
    ```bash
-   git clone https://github.com/your-username/your-repo-name.git
+   git clone https://github.com/hrmneffdii/foundry-defi-stablecoin
    cd your-repo-name
    ```
 
