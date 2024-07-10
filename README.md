@@ -115,7 +115,7 @@ This command will execute all the unit and invariant tests, showing you the resu
 
 Got questions or feedback? We'd love to hear from you! 📧 Reach out at hermaneffendi0502@gmail.com.
 
-**Currently i find the opportunities internship as junior smart contract enginerr!!**
+**Currently i find the opportunities internship as junior smart contract enginerr 👐**
 
 ---
 
