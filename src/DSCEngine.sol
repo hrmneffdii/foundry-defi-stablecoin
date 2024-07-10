@@ -23,6 +23,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./libraries/OracleLib.sol";
 
 /*
  * @title DSCEngine
@@ -89,6 +90,8 @@ contract DSCEngine is ReentrancyGuard {
 
     // ERC20 standard for DSC
     DecentralizedStableCoin private immutable i_dsc; 
+
+    using OracleLib for AggregatorV3Interface;
 
     ///////////////////
     //// Modifiers ////
@@ -330,7 +333,7 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getValueInUSD(address _tokenCollateral, uint256 _tokenAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[_tokenCollateral]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
 
         // price             -> 3500 usd / eth
         // _tokenAmountInWei -> amount of token in wei
@@ -374,6 +377,10 @@ contract DSCEngine is ReentrancyGuard {
 
     function getCollateralTokens() external view returns(address[] memory){
         return s_collateralTokens;
+    }
+
+    function getMinHealthFactor() external pure returns(uint256){
+        return MIN_HEALTH_FACTOR;
     }
 
 }
