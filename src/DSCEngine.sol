@@ -333,7 +333,7 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getValueInUSD(address _tokenCollateral, uint256 _tokenAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[_tokenCollateral]);
-        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
+        (, int256 price,,,) = priceFeed.latestRoundData();
 
         // price             -> 3500 usd / eth
         // _tokenAmountInWei -> amount of token in wei
