@@ -89,7 +89,7 @@ Ready to get started? Follow these steps to set up your development environment:
 2. **Clone this repository**:
    ```bash
    git clone https://github.com/hrmneffdii/foundry-defi-stablecoin
-   cd your-repo-name
+   cd foundry-defi-stablecoin
    ```
 
 3. **Install dependencies**:
@@ -114,6 +114,8 @@ This command will execute all the unit and invariant tests, showing you the resu
 ## Contact
 
 Got questions or feedback? We'd love to hear from you! 📧 Reach out at hermaneffendi0502@gmail.com.
+
+** Currently i find the opportunities internship as junior smart contract enginerr!!**
 
 ---
 
